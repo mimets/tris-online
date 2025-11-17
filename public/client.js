@@ -9,6 +9,7 @@ const loginError = document.getElementById('loginError');
 
 // elementi gioco
 const gameDiv = document.getElementById('game');
+const boardEl = document.getElementById('board');
 const cells = document.querySelectorAll('.cell');
 const symbolEl = document.getElementById('symbol');
 const turnEl = document.getElementById('turn');
@@ -23,7 +24,22 @@ let currentTurn = 'X';
 let gameOver = false;
 let currentRoomId = null;
 
-function renderBoard(board) {
+// linee di vittoria (indici celle)
+const WIN_LINES = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+function clearWinEffects() {
+  boardEl.classList.remove('board-draw');
+  cells.forEach(c => c.classList.remove('win'));
+}
+
+function renderBoard(board, winnerSymbol = null) {
+  // reset effetti
+  clearWinEffects();
+
   board.forEach((value, index) => {
     const cell = cells[index];
     cell.textContent = value || '';
@@ -33,6 +49,18 @@ function renderBoard(board) {
       cell.classList.remove('taken');
     }
   });
+
+  // se c'è un vincitore, evidenzia la linea
+  if (winnerSymbol === 'X' || winnerSymbol === 'O') {
+    for (const [a,b,c] of WIN_LINES) {
+      if (board[a] === winnerSymbol && board[b] === winnerSymbol && board[c] === winnerSymbol) {
+        cells[a].classList.add('win');
+        cells[b].classList.add('win');
+        cells[c].classList.add('win');
+        break;
+      }
+    }
+  }
 }
 
 function renderPlayers(players) {
@@ -61,19 +89,16 @@ joinBtn.addEventListener('click', () => {
   socket.emit('joinRoom', { roomId, nickname });
 });
 
-// esci dalla stanza (lato client basta ricaricare l'interfaccia)
+// esci dalla stanza (solo lato client)
 leaveBtn.addEventListener('click', () => {
-  // reset stato locale
   mySymbol = null;
   currentTurn = 'X';
   gameOver = false;
   currentRoomId = null;
 
-  // torna a schermata login
   gameDiv.classList.add('hidden');
   loginDiv.classList.remove('hidden');
 
-  // pulisci UI
   statusEl.textContent = '';
   playersListEl.textContent = '';
   roomInfoEl.textContent = '';
@@ -119,9 +144,12 @@ socket.on('playersUpdate', (data) => {
 
 // stato partita
 socket.on('gameState', (data) => {
-  renderBoard(data.board);
   currentTurn = data.currentTurn;
   gameOver = data.gameOver;
+
+  // se c'è vincitore, passiamo il simbolo per highlight
+  const winnerSymbol = data.winner === 'X' || data.winner === 'O' ? data.winner : null;
+  renderBoard(data.board, winnerSymbol);
 
   turnEl.textContent = 'Turno di: ' + currentTurn;
 
@@ -129,6 +157,7 @@ socket.on('gameState', (data) => {
     statusEl.textContent = 'Ha vinto: ' + data.winner;
   } else if (data.winner === 'draw') {
     statusEl.textContent = 'Pareggio!';
+    boardEl.classList.add('board-draw');
   } else {
     statusEl.textContent = '';
   }
@@ -150,5 +179,6 @@ cells.forEach(cell => {
 
 // reset partita
 resetBtn.addEventListener('click', () => {
+  clearWinEffects();
   socket.emit('reset');
 });
