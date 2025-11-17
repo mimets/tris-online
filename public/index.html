@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Tris Online - Stanze</title>
+  <title>Mini Giochi Online</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -10,32 +10,44 @@
   <div class="app-container">
     <header class="app-header">
       <div>
-        <h1>Tris <span>Online</span></h1>
-        <p class="subtitle">Crea una stanza, invita gli amici e gioca ovunque.</p>
+        <h1>Mini <span>Giochi</span></h1>
+        <p class="subtitle">Scegli un gioco, crea una stanza e invita gli amici.</p>
       </div>
       <div class="badge">Multiplayer</div>
     </header>
 
     <section id="login">
       <h2 class="section-title">Entra in una stanza</h2>
+
       <div class="login-grid">
+        <div class="login-field">
+          <label for="gameSelect">Gioco</label>
+          <select id="gameSelect">
+            <option value="tris">Tris 3×3</option>
+            <option value="morra">Morra cinese (1v1)</option>
+          </select>
+        </div>
+
         <div class="login-field">
           <label for="roomIdInput">Codice stanza</label>
           <input id="roomIdInput" type="text" maxlength="12" placeholder="Es. abc123">
         </div>
+
         <div class="login-field">
           <label for="nicknameInput">Nickname</label>
           <input id="nicknameInput" type="text" maxlength="14" placeholder="Es. feder">
         </div>
       </div>
+
       <button id="joinBtn" class="primary-btn">Entra / Crea stanza</button>
       <p id="loginError" class="error"></p>
-      <p class="hint">Suggerimento: usa lo stesso codice stanza su telefono e PC per giocare insieme.</p>
+      <p class="hint">Attenzione: lo stesso codice stanza è legato a un singolo gioco.</p>
     </section>
 
     <section id="game" class="hidden">
       <div class="top-bar">
         <div class="room-chip" id="roomInfo"></div>
+        <div class="room-chip game-chip" id="gameInfo"></div>
         <button id="leaveBtn" class="ghost-btn">Esci</button>
       </div>
 
@@ -47,16 +59,29 @@
 
       <div id="playersList"></div>
 
-      <div id="board">
-        <div class="cell" data-index="0"></div>
-        <div class="cell" data-index="1"></div>
-        <div class="cell" data-index="2"></div>
-        <div class="cell" data-index="3"></div>
-        <div class="cell" data-index="4"></div>
-        <div class="cell" data-index="5"></div>
-        <div class="cell" data-index="6"></div>
-        <div class="cell" data-index="7"></div>
-        <div class="cell" data-index="8"></div>
+      <div id="trisWrapper">
+        <div id="board">
+          <div class="cell" data-index="0"></div>
+          <div class="cell" data-index="1"></div>
+          <div class="cell" data-index="2"></div>
+          <div class="cell" data-index="3"></div>
+          <div class="cell" data-index="4"></div>
+          <div class="cell" data-index="5"></div>
+          <div class="cell" data-index="6"></div>
+          <div class="cell" data-index="7"></div>
+          <div class="cell" data-index="8"></div>
+        </div>
+      </div>
+
+      <div id="morraWrapper" class="hidden">
+        <div class="morra-buttons">
+          <button class="morra-btn" data-choice="rock">🪨 Sasso</button>
+          <button class="morra-btn" data-choice="paper">📄 Carta</button>
+          <button class="morra-btn" data-choice="scissors">✂️ Forbice</button>
+        </div>
+        <p class="morra-info">
+          Ogni giocatore sceglie una mossa. Quando entrambi hanno scelto, viene mostrato il risultato.
+        </p>
       </div>
 
       <div class="bottom-bar">
