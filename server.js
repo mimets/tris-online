@@ -5,44 +5,32 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: '*'
-  }
+  cors: { origin: '*' }
 });
 
 app.use(express.static('public'));
 
 // rooms[roomId] = {
-//   gameType: 'tris' | 'morra',
-//   board: Array(9) (solo per tris),
-//   currentTurn: 'X' | 'O' (solo per tris),
-//   gameOver: bool (tris),
-//   morra: {
-//     choices: { socketId: 'rock'|'paper'|'scissors' },
-//     lastResult: { winnerNickname, text }
-//   },
-//   players: { socketId: { symbol, nickname } }
+//   gameType: 'tris' | 'among',
+//   // tris
+//   board, currentTurn, gameOver,
+//   // among
+//   players: {
+//     socketId: { nickname, role, x, y, color }
+//   }
 // }
 const rooms = {};
 
-function createRoom(roomId, gameType) {
-  const base = {
-    gameType,
+// ---------- TRIS ----------
+
+function createTrisRoom(roomId) {
+  rooms[roomId] = {
+    gameType: 'tris',
+    board: Array(9).fill(null),
+    currentTurn: 'X',
+    gameOver: false,
     players: {}
   };
-
-  if (gameType === 'tris') {
-    base.board = Array(9).fill(null);
-    base.currentTurn = 'X';
-    base.gameOver = false;
-  } else if (gameType === 'morra') {
-    base.morra = {
-      choices: {},
-      lastResult: null
-    };
-  }
-
-  rooms[roomId] = base;
 }
 
 function checkWinner(board) {
@@ -61,45 +49,31 @@ function checkWinner(board) {
   return null;
 }
 
-function evaluateMorra(choices, players) {
-  const ids = Object.keys(choices);
-  if (ids.length < 2) return null;
+// ---------- AMONG-LITE ----------
 
-  const [id1, id2] = ids;
-  const c1 = choices[id1];
-  const c2 = choices[id2];
-
-  if (!c1 || !c2) return null;
-
-  if (c1 === c2) {
-    return {
-      winnerNickname: null,
-      text: `Pareggio: ${c1} contro ${c2}`
-    };
-  }
-
-  const winMap = {
-    rock: 'scissors',
-    paper: 'rock',
-    scissors: 'paper'
-  };
-
-  let winnerId;
-  if (winMap[c1] === c2) {
-    winnerId = id1;
-  } else if (winMap[c2] === c1) {
-    winnerId = id2;
-  } else {
-    return null;
-  }
-
-  const winnerNickname = players[winnerId]?.nickname || 'Sconosciuto';
-
-  return {
-    winnerNickname,
-    text: `${winnerNickname} ha vinto: ${c1} contro ${c2}`
+function createAmongRoom(roomId) {
+  rooms[roomId] = {
+    gameType: 'among',
+    players: {}
   };
 }
+
+function getRandomColor() {
+  const palette = ['#f97373', '#60a5fa', '#34d399', '#fbbf24', '#a855f7', '#ec4899', '#f97316'];
+  return palette[Math.floor(Math.random() * palette.length)];
+}
+
+function assignAmongRoles(room) {
+  const ids = Object.keys(room.players);
+  if (ids.length === 0) return;
+
+  const impostorIndex = Math.floor(Math.random() * ids.length);
+  ids.forEach((id, idx) => {
+    room.players[id].role = idx === impostorIndex ? 'impostor' : 'crew';
+  });
+}
+
+// ---------- SOCKET.IO ----------
 
 io.on('connection', (socket) => {
   console.log('Nuovo socket:', socket.id);
@@ -108,7 +82,7 @@ io.on('connection', (socket) => {
   socket.on('joinRoom', ({ roomId, nickname, gameType }) => {
     roomId = (roomId || '').trim();
     nickname = (nickname || '').trim() || 'Anonimo';
-    gameType = gameType === 'morra' ? 'morra' : 'tris';
+    gameType = gameType === 'among' ? 'among' : 'tris';
 
     if (!roomId) {
       socket.emit('errorMessage', 'Devi inserire un codice stanza.');
@@ -116,7 +90,8 @@ io.on('connection', (socket) => {
     }
 
     if (!rooms[roomId]) {
-      createRoom(roomId, gameType);
+      if (gameType === 'tris') createTrisRoom(roomId);
+      else createAmongRoom(roomId);
     }
 
     const room = rooms[roomId];
@@ -129,58 +104,69 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const symbolsInUse = Object.values(room.players)
-      .map(p => p.symbol)
-      .filter(Boolean);
+    socket.data.roomId = roomId;
+    socket.join(roomId);
 
-    let symbol = 'X';
     if (room.gameType === 'tris') {
+      const symbolsInUse = Object.values(room.players)
+        .map(p => p.symbol)
+        .filter(Boolean);
+
+      let symbol = 'X';
       if (symbolsInUse.includes('X') && !symbolsInUse.includes('O')) {
         symbol = 'O';
       } else if (symbolsInUse.includes('X') && symbolsInUse.includes('O')) {
         symbol = null;
       }
-    } else {
-      symbol = null;
-    }
 
-    room.players[socket.id] = { symbol, nickname };
-    socket.data.roomId = roomId;
-    socket.join(roomId);
+      room.players[socket.id] = { symbol, nickname };
 
-    console.log(
-      `Socket ${socket.id} è entrato in room ${roomId} (${room.gameType})`
-    );
-
-    if (room.gameType === 'tris') {
       socket.emit('init', {
         roomId,
-        gameType: room.gameType,
+        gameType: 'tris',
         symbol,
         board: room.board,
         currentTurn: room.currentTurn,
         gameOver: room.gameOver,
         players: room.players,
-        morra: null
+        among: null
       });
-    } else if (room.gameType === 'morra') {
+
+      io.to(roomId).emit('playersUpdate', {
+        players: room.players
+      });
+    } else if (room.gameType === 'among') {
+      const player = {
+        nickname,
+        role: 'crew',
+        x: 100 + Math.random() * 200,
+        y: 100 + Math.random() * 200,
+        color: getRandomColor()
+      };
+      room.players[socket.id] = player;
+
+      assignAmongRoles(room);
+
       socket.emit('init', {
         roomId,
-        gameType: room.gameType,
+        gameType: 'among',
         symbol: null,
         board: null,
         currentTurn: null,
         gameOver: null,
         players: room.players,
-        morra: room.morra
+        among: {
+          me: { id: socket.id, ...room.players[socket.id] }
+        }
+      });
+
+      io.to(roomId).emit('playersUpdate', {
+        players: room.players
       });
     }
-
-    io.to(roomId).emit('playersUpdate', {
-      players: room.players
-    });
   });
 
+  // TRIS: mossa
   socket.on('makeMove', (index) => {
     const roomId = socket.data.roomId;
     if (!roomId || !rooms[roomId]) return;
@@ -208,7 +194,7 @@ io.on('connection', (socket) => {
         gameOver: room.gameOver,
         winner,
         players: room.players,
-        morra: null
+        among: null
       });
     } else {
       room.currentTurn = room.currentTurn === 'X' ? 'O' : 'X';
@@ -219,15 +205,15 @@ io.on('connection', (socket) => {
         gameOver: room.gameOver,
         winner: null,
         players: room.players,
-        morra: null
+        among: null
       });
     }
   });
 
+  // RESET per entrambi i giochi
   socket.on('reset', () => {
     const roomId = socket.data.roomId;
     if (!roomId || !rooms[roomId]) return;
-
     const room = rooms[roomId];
 
     if (room.gameType === 'tris') {
@@ -242,64 +228,50 @@ io.on('connection', (socket) => {
         gameOver: room.gameOver,
         winner: null,
         players: room.players,
-        morra: null
+        among: null
       });
-    } else if (room.gameType === 'morra') {
-      room.morra.choices = {};
-      room.morra.lastResult = null;
+    } else if (room.gameType === 'among') {
+      // rimetti i player in posizioni random e riassegna ruoli
+      Object.values(room.players).forEach(p => {
+        p.x = 100 + Math.random() * 200;
+        p.y = 100 + Math.random() * 200;
+      });
+      assignAmongRoles(room);
 
       io.to(roomId).emit('gameState', {
-        gameType: 'morra',
+        gameType: 'among',
         board: null,
         currentTurn: null,
         gameOver: null,
         winner: null,
         players: room.players,
-        morra: room.morra
+        among: null
       });
     }
   });
 
-  socket.on('morraChoice', (choice) => {
+  // AMONG: movimento
+  socket.on('move', ({ x, y }) => {
     const roomId = socket.data.roomId;
     if (!roomId || !rooms[roomId]) return;
 
     const room = rooms[roomId];
-    if (room.gameType !== 'morra') return;
+    if (room.gameType !== 'among') return;
 
-    const c = choice === 'rock' || choice === 'paper' || choice === 'scissors'
-      ? choice
-      : null;
-    if (!c) return;
+    const player = room.players[socket.id];
+    if (!player) return;
 
-    room.morra.choices[socket.id] = c;
+    const clampedX = Math.max(40, Math.min(760, x));
+    const clampedY = Math.max(40, Math.min(460, y));
 
-    const result = evaluateMorra(room.morra.choices, room.players);
-    if (result) {
-      room.morra.lastResult = result;
+    player.x = clampedX;
+    player.y = clampedY;
 
-      io.to(roomId).emit('gameState', {
-        gameType: 'morra',
-        board: null,
-        currentTurn: null,
-        gameOver: null,
-        winner: null,
-        players: room.players,
-        morra: room.morra
-      });
-
-      room.morra.choices = {};
-    } else {
-      io.to(roomId).emit('gameState', {
-        gameType: 'morra',
-        board: null,
-        currentTurn: null,
-        gameOver: null,
-        winner: null,
-        players: room.players,
-        morra: room.morra
-      });
-    }
+    io.to(roomId).emit('playerMoved', {
+      id: socket.id,
+      x: player.x,
+      y: player.y
+    });
   });
 
   socket.on('disconnect', () => {
@@ -309,14 +281,13 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     delete room.players[socket.id];
 
-    if (room.gameType === 'morra' && room.morra) {
-      delete room.morra.choices[socket.id];
-    }
-
     if (Object.keys(room.players).length === 0) {
       delete rooms[roomId];
       console.log('Room eliminata:', roomId);
     } else {
+      if (room.gameType === 'among') {
+        assignAmongRoles(room);
+      }
       io.to(roomId).emit('playersUpdate', {
         players: room.players
       });

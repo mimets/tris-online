@@ -25,9 +25,9 @@
             <div class="game-title">Tris 3×3</div>
             <div class="game-desc">Classico tris a turni.</div>
           </button>
-          <button class="game-option" data-game="morra">
-            <div class="game-title">Morra cinese</div>
-            <div class="game-desc">Sasso, carta, forbice 1v1.</div>
+          <button class="game-option" data-game="among">
+            <div class="game-title">Among‑Lite</div>
+            <div class="game-desc">Muoviti nella nave con ruoli segreti.</div>
           </button>
         </div>
 
@@ -78,15 +78,8 @@
         </div>
       </div>
 
-      <div id="morraWrapper" class="hidden">
-        <div class="morra-buttons">
-          <button class="morra-btn" data-choice="rock">🪨 Sasso</button>
-          <button class="morra-btn" data-choice="paper">📄 Carta</button>
-          <button class="morra-btn" data-choice="scissors">✂️ Forbice</button>
-        </div>
-        <p class="morra-info">
-          Ogni giocatore sceglie una mossa. Quando entrambi hanno scelto, viene mostrato il risultato.
-        </p>
+      <div id="amongWrapper" class="hidden">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
       </div>
 
       <div class="bottom-bar">

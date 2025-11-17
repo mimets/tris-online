@@ -33,7 +33,7 @@ body {
     0 20px 40px rgba(15, 23, 42, 0.9),
     0 0 0 1px rgba(148, 163, 184, 0.12);
   padding: 20px 18px 18px;
-  max-width: 520px;
+  max-width: 900px;
   width: 100%;
   margin: 12px;
 }
@@ -177,8 +177,7 @@ input[type="text"]:focus {
 
 .primary-btn,
 .secondary-btn,
-.ghost-btn,
-.morra-btn {
+.ghost-btn {
   border: none;
   border-radius: 999px;
   padding: 8px 16px;
@@ -293,7 +292,7 @@ input[type="text"]:focus {
   color: var(--text-soft);
 }
 
-/* BOARD TRIS */
+/* TRIS */
 
 #trisWrapper {
   display: flex;
@@ -369,40 +368,25 @@ input[type="text"]:focus {
   100% { transform: translateX(0); }
 }
 
-/* MORRA */
+/* AMONG-LITE */
 
-#morraWrapper {
-  margin: 10px 0 6px;
-  text-align: center;
+#amongWrapper {
+  margin-top: 10px;
 }
 
-.morra-buttons {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.morra-btn {
-  background: rgba(15, 23, 42, 0.95);
+#gameCanvas {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.6);
-  color: var(--text-main);
-  padding-inline: 12px;
+  background: radial-gradient(circle at top, #0f172a, #020617);
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 23, 42, 0.9),
+    0 8px 18px rgba(15, 23, 42, 0.9);
 }
 
-.morra-btn:hover {
-  border-color: var(--accent-strong);
-  filter: brightness(1.05);
-}
-
-.morra-info {
-  margin: 0;
-  font-size: 11px;
-  color: var(--text-soft);
-}
-
-/* BOTTOM BAR */
+/* BOTTOM */
 
 .bottom-bar {
   margin-top: 6px;
@@ -412,7 +396,7 @@ input[type="text"]:focus {
 
 /* MOBILE */
 
-@media (max-width: 420px) {
+@media (max-width: 700px) {
   .app-container {
     border-radius: 0;
     max-width: 100%;
@@ -426,5 +410,9 @@ input[type="text"]:focus {
 
   .login-layout {
     grid-template-columns: 1fr;
+  }
+
+  #gameCanvas {
+    height: 260px;
   }
 }
