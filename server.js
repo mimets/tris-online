@@ -17,7 +17,7 @@ app.use(express.static('public'));
 //   board: Array(9) (solo per tris),
 //   currentTurn: 'X' | 'O' (solo per tris),
 //   gameOver: bool (tris),
-//   morra: { // solo per morra
+//   morra: {
 //     choices: { socketId: 'rock'|'paper'|'scissors' },
 //     lastResult: { winnerNickname, text }
 //   },
@@ -105,7 +105,6 @@ io.on('connection', (socket) => {
   console.log('Nuovo socket:', socket.id);
   socket.data.roomId = null;
 
-  // join stanza con nickname + gameType
   socket.on('joinRoom', ({ roomId, nickname, gameType }) => {
     roomId = (roomId || '').trim();
     nickname = (nickname || '').trim() || 'Anonimo';
@@ -122,7 +121,6 @@ io.on('connection', (socket) => {
 
     const room = rooms[roomId];
 
-    // stanza esistente ma con altro gioco
     if (room.gameType !== gameType) {
       socket.emit(
         'errorMessage',
@@ -140,10 +138,10 @@ io.on('connection', (socket) => {
       if (symbolsInUse.includes('X') && !symbolsInUse.includes('O')) {
         symbol = 'O';
       } else if (symbolsInUse.includes('X') && symbolsInUse.includes('O')) {
-        symbol = null; // spettatore
+        symbol = null;
       }
     } else {
-      symbol = null; // morra non usa X/O
+      symbol = null;
     }
 
     room.players[socket.id] = { symbol, nickname };
@@ -165,7 +163,7 @@ io.on('connection', (socket) => {
         players: room.players,
         morra: null
       });
-    } else {
+    } else if (room.gameType === 'morra') {
       socket.emit('init', {
         roomId,
         gameType: room.gameType,
@@ -183,7 +181,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // mossa tris
   socket.on('makeMove', (index) => {
     const roomId = socket.data.roomId;
     if (!roomId || !rooms[roomId]) return;
@@ -197,7 +194,6 @@ io.on('connection', (socket) => {
 
     const symbol = player.symbol;
     if (symbol !== room.currentTurn) return;
-
     if (room.board[index] !== null) return;
 
     room.board[index] = symbol;
@@ -228,7 +224,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // reset
   socket.on('reset', () => {
     const roomId = socket.data.roomId;
     if (!roomId || !rooms[roomId]) return;
@@ -265,7 +260,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // mossa morra
   socket.on('morraChoice', (choice) => {
     const roomId = socket.data.roomId;
     if (!roomId || !rooms[roomId]) return;

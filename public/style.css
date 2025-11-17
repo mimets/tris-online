@@ -93,10 +93,53 @@ h1 span {
   border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
-.login-grid {
+.login-layout {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: 1.1fr 1.3fr;
+  gap: 14px;
+}
+
+.game-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.game-option {
+  width: 100%;
+  text-align: left;
+  background: rgba(15, 23, 42, 0.95);
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s, box-shadow 0.1s;
+}
+
+.game-option .game-title {
+  font-size: 14px;
+}
+
+.game-option .game-desc {
+  font-size: 11px;
+  color: var(--text-soft);
+}
+
+.game-option:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-strong);
+  box-shadow: 0 6px 16px rgba(30, 64, 175, 0.5);
+}
+
+.game-option.active {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: var(--accent-strong);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .login-field {
@@ -105,17 +148,12 @@ h1 span {
   gap: 4px;
 }
 
-.login-field:nth-child(3) {
-  grid-column: 1 / -1;
-}
-
 .login-field label {
   font-size: 11px;
   color: var(--text-soft);
 }
 
-input[type="text"],
-select {
+input[type="text"] {
   background: rgba(15, 23, 42, 0.9);
   border-radius: 10px;
   border: 1px solid rgba(148, 163, 184, 0.6);
@@ -130,28 +168,12 @@ input[type="text"]::placeholder {
   color: rgba(148, 163, 184, 0.7);
 }
 
-input[type="text"]:focus,
-select:focus {
+input[type="text"]:focus {
   border-color: var(--accent-strong);
   box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
   background: rgba(15, 23, 42, 1);
   transform: translateY(-1px);
 }
-
-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background-image:
-    linear-gradient(45deg, transparent 50%, var(--accent-strong) 50%),
-    linear-gradient(135deg, var(--accent-strong) 50%, transparent 50%);
-  background-position:
-    calc(100% - 15px) calc(50% + 1px),
-    calc(100% - 10px) calc(50% + 1px);
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-}
-
-/* BUTTONS */
 
 .primary-btn,
 .secondary-btn,
@@ -167,7 +189,7 @@ select {
 }
 
 .primary-btn {
-  margin-top: 10px;
+  margin-top: 4px;
   width: 100%;
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   color: white;
@@ -320,8 +342,6 @@ select {
   opacity: 0.92;
 }
 
-/* highlight linea vincente */
-
 .cell.win {
   border-color: var(--win);
   box-shadow:
@@ -336,8 +356,6 @@ select {
   70% { transform: scale(0.98); }
   100% { transform: scale(1); }
 }
-
-/* board shake per pareggio */
 
 .board-draw {
   animation: shake-draw 0.4s ease-out 0s 1;
@@ -404,5 +422,9 @@ select {
 
   .app-header {
     align-items: flex-start;
+  }
+
+  .login-layout {
+    grid-template-columns: 1fr;
   }
 }

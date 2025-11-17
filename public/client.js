@@ -4,9 +4,9 @@ const socket = io();
 const loginDiv = document.getElementById('login');
 const roomIdInput = document.getElementById('roomIdInput');
 const nicknameInput = document.getElementById('nicknameInput');
-const gameSelect = document.getElementById('gameSelect');
 const joinBtn = document.getElementById('joinBtn');
 const loginError = document.getElementById('loginError');
+const gameOptions = document.querySelectorAll('.game-option');
 
 // gioco
 const gameDiv = document.getElementById('game');
@@ -37,6 +37,21 @@ const WIN_LINES = [
   [0,3,6],[1,4,7],[2,5,8],
   [0,4,8],[2,4,6]
 ];
+
+// selezione gioco dal menu a sinistra
+gameOptions.forEach(btn => {
+  btn.addEventListener('click', () => {
+    gameOptions.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+function getSelectedGameType() {
+  const active = document.querySelector('.game-option.active');
+  if (!active) return 'tris';
+  const v = active.getAttribute('data-game');
+  return v === 'morra' ? 'morra' : 'tris';
+}
 
 function clearWinEffects() {
   boardEl.classList.remove('board-draw');
@@ -107,7 +122,7 @@ function updateGameLayout(gameType) {
 joinBtn.addEventListener('click', () => {
   const roomId = roomIdInput.value.trim();
   const nickname = nicknameInput.value.trim();
-  const gameType = gameSelect.value === 'morra' ? 'morra' : 'tris';
+  const gameType = getSelectedGameType();
 
   if (!roomId) {
     loginError.textContent = 'Inserisci un codice stanza.';
@@ -118,7 +133,7 @@ joinBtn.addEventListener('click', () => {
   socket.emit('joinRoom', { roomId, nickname, gameType });
 });
 
-// esci dalla stanza
+// esci stanza
 leaveBtn.addEventListener('click', () => {
   mySymbol = null;
   currentTurn = 'X';
@@ -138,12 +153,12 @@ leaveBtn.addEventListener('click', () => {
   renderBoard(null);
 });
 
-// errori dal server
+// errori
 socket.on('errorMessage', (msg) => {
   loginError.textContent = msg;
 });
 
-// inizializzazione dopo join
+// init dopo join
 socket.on('init', (data) => {
   currentRoomId = data.roomId;
   currentGameType = data.gameType;
@@ -167,7 +182,7 @@ socket.on('init', (data) => {
     statusEl.textContent = '';
   } else if (currentGameType === 'morra') {
     renderBoard(null);
-    symbolEl.textContent = 'Gioca cliccando una mossa qui sotto.';
+    symbolEl.textContent = 'Scegli sasso, carta o forbice.';
     turnEl.textContent = '';
     if (data.morra && data.morra.lastResult) {
       statusEl.textContent = data.morra.lastResult.text;
@@ -177,7 +192,7 @@ socket.on('init', (data) => {
   }
 });
 
-// aggiornamento lista giocatori
+// update giocatori
 socket.on('playersUpdate', (data) => {
   renderPlayers(data.players);
 });
@@ -222,13 +237,13 @@ socket.on('gameState', (data) => {
   }
 });
 
-// click celle (tris)
+// click celle tris
 cells.forEach(cell => {
   cell.addEventListener('click', () => {
     if (currentGameType !== 'tris') return;
     const index = parseInt(cell.getAttribute('data-index'), 10);
     if (gameOver) return;
-    if (!mySymbol) return; // spettatore
+    if (!mySymbol) return;
     socket.emit('makeMove', index);
   });
 });
@@ -242,7 +257,7 @@ morraButtons.forEach(btn => {
   });
 });
 
-// reset partita
+// reset
 resetBtn.addEventListener('click', () => {
   clearWinEffects();
   socket.emit('reset');

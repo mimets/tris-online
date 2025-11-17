@@ -17,31 +17,36 @@
     </header>
 
     <section id="login">
-      <h2 class="section-title">Entra in una stanza</h2>
+      <h2 class="section-title">Scegli un gioco ed entra</h2>
 
-      <div class="login-grid">
-        <div class="login-field">
-          <label for="gameSelect">Gioco</label>
-          <select id="gameSelect">
-            <option value="tris">Tris 3×3</option>
-            <option value="morra">Morra cinese (1v1)</option>
-          </select>
+      <div class="login-layout">
+        <div class="game-menu">
+          <button class="game-option active" data-game="tris">
+            <div class="game-title">Tris 3×3</div>
+            <div class="game-desc">Classico tris a turni.</div>
+          </button>
+          <button class="game-option" data-game="morra">
+            <div class="game-title">Morra cinese</div>
+            <div class="game-desc">Sasso, carta, forbice 1v1.</div>
+          </button>
         </div>
 
-        <div class="login-field">
-          <label for="roomIdInput">Codice stanza</label>
-          <input id="roomIdInput" type="text" maxlength="12" placeholder="Es. abc123">
-        </div>
+        <div class="login-form">
+          <div class="login-field">
+            <label for="roomIdInput">Codice stanza</label>
+            <input id="roomIdInput" type="text" maxlength="12" placeholder="Es. room1">
+          </div>
 
-        <div class="login-field">
-          <label for="nicknameInput">Nickname</label>
-          <input id="nicknameInput" type="text" maxlength="14" placeholder="Es. feder">
+          <div class="login-field">
+            <label for="nicknameInput">Nickname</label>
+            <input id="nicknameInput" type="text" maxlength="14" placeholder="Es. feder">
+          </div>
+
+          <button id="joinBtn" class="primary-btn">Entra / Crea stanza</button>
+          <p id="loginError" class="error"></p>
+          <p class="hint">Usa lo stesso codice stanza e lo stesso gioco per giocare insieme.</p>
         </div>
       </div>
-
-      <button id="joinBtn" class="primary-btn">Entra / Crea stanza</button>
-      <p id="loginError" class="error"></p>
-      <p class="hint">Attenzione: lo stesso codice stanza è legato a un singolo gioco.</p>
     </section>
 
     <section id="game" class="hidden">
