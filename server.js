@@ -47,10 +47,9 @@ function checkWinner(b) {
 io.on('connection', (socket) => {
   console.log('Nuovo socket:', socket.id);
 
-  // info per questo socket
   socket.data.roomId = null;
 
-  // join room con nickname
+  // join di una stanza con nickname
   socket.on('joinRoom', ({ roomId, nickname }) => {
     roomId = (roomId || '').trim();
     nickname = (nickname || '').trim() || 'Anonimo';
@@ -66,7 +65,6 @@ io.on('connection', (socket) => {
 
     const room = rooms[roomId];
 
-    // calcola simbolo: X se non c'è, O se c'è solo X, null se già X e O
     const symbolsInUse = Object.values(room.players)
       .map(p => p.symbol)
       .filter(Boolean);
@@ -84,7 +82,6 @@ io.on('connection', (socket) => {
 
     console.log(`Socket ${socket.id} è entrato in room ${roomId} con simbolo`, symbol);
 
-    // manda stato iniziale solo a questo socket
     socket.emit('init', {
       roomId,
       symbol,
@@ -94,7 +91,6 @@ io.on('connection', (socket) => {
       players: room.players
     });
 
-    // aggiorna anche gli altri nella stanza
     io.to(roomId).emit('playersUpdate', {
       players: room.players
     });
@@ -108,7 +104,7 @@ io.on('connection', (socket) => {
     if (room.gameOver) return;
 
     const player = room.players[socket.id];
-    if (!player || !player.symbol) return; // spettatore
+    if (!player || !player.symbol) return;
 
     const symbol = player.symbol;
     if (symbol !== room.currentTurn) return;
@@ -164,12 +160,10 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     delete room.players[socket.id];
 
-    // se stanza vuota, la eliminiamo
     if (Object.keys(room.players).length === 0) {
       delete rooms[roomId];
       console.log('Room eliminata:', roomId);
     } else {
-      // aggiorna lista giocatori agli altri
       io.to(roomId).emit('playersUpdate', {
         players: room.players
       });
