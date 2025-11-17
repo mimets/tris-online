@@ -4,10 +4,11 @@ const socket = io();
 const loginDiv = document.getElementById('login');
 const roomIdInput = document.getElementById('roomIdInput');
 const nicknameInput = document.getElementById('nicknameInput');
+const gameSelect = document.getElementById('gameSelect');
 const joinBtn = document.getElementById('joinBtn');
 const loginError = document.getElementById('loginError');
 
-// elementi gioco
+// elementi gioco comuni
 const gameDiv = document.getElementById('game');
 const boardEl = document.getElementById('board');
 const cells = document.querySelectorAll('.cell');
@@ -17,14 +18,21 @@ const statusEl = document.getElementById('status');
 const resetBtn = document.getElementById('reset');
 const playersListEl = document.getElementById('playersList');
 const roomInfoEl = document.getElementById('roomInfo');
+const gameInfoEl = document.getElementById('gameInfo');
 const leaveBtn = document.getElementById('leaveBtn');
+
+// wrapper per i due giochi
+const trisWrapper = document.getElementById('trisWrapper');
+const morraWrapper = document.getElementById('morraWrapper');
+const morraButtons = document.querySelectorAll('.morra-btn');
 
 let mySymbol = null;
 let currentTurn = 'X';
 let gameOver = false;
 let currentRoomId = null;
+let currentGameType = 'tris';
 
-// linee di vittoria (indici celle)
+// linee di vittoria tris
 const WIN_LINES = [
   [0,1,2],[3,4,5],[6,7,8],
   [0,3,6],[1,4,7],[2,5,8],
@@ -37,8 +45,15 @@ function clearWinEffects() {
 }
 
 function renderBoard(board, winnerSymbol = null) {
-  // reset effetti
   clearWinEffects();
+
+  if (!board) {
+    cells.forEach(c => {
+      c.textContent = '';
+      c.classList.remove('taken');
+    });
+    return;
+  }
 
   board.forEach((value, index) => {
     const cell = cells[index];
@@ -50,10 +65,10 @@ function renderBoard(board, winnerSymbol = null) {
     }
   });
 
-  // se c'è un vincitore, evidenzia la linea
   if (winnerSymbol === 'X' || winnerSymbol === 'O') {
     for (const [a,b,c] of WIN_LINES) {
-      if (board[a] === winnerSymbol && board[b] === winnerSymbol && board[c] === winnerSymbol) {
+      const boardArr = board;
+      if (boardArr[a] === winnerSymbol && boardArr[b] === winnerSymbol && boardArr[c] === winnerSymbol) {
         cells[a].classList.add('win');
         cells[b].classList.add('win');
         cells[c].classList.add('win');
@@ -75,10 +90,25 @@ function renderPlayers(players) {
       : 'Nessun giocatore nella stanza.';
 }
 
+function updateGameLayout(gameType) {
+  currentGameType = gameType;
+
+  if (gameType === 'tris') {
+    trisWrapper.classList.remove('hidden');
+    morraWrapper.classList.add('hidden');
+    gameInfoEl.textContent = 'Gioco: Tris 3×3';
+  } else if (gameType === 'morra') {
+    trisWrapper.classList.add('hidden');
+    morraWrapper.classList.remove('hidden');
+    gameInfoEl.textContent = 'Gioco: Morra cinese';
+  }
+}
+
 // join stanza
 joinBtn.addEventListener('click', () => {
   const roomId = roomIdInput.value.trim();
   const nickname = nicknameInput.value.trim();
+  const gameType = gameSelect.value === 'morra' ? 'morra' : 'tris';
 
   if (!roomId) {
     loginError.textContent = 'Inserisci un codice stanza.';
@@ -86,10 +116,10 @@ joinBtn.addEventListener('click', () => {
   }
 
   loginError.textContent = '';
-  socket.emit('joinRoom', { roomId, nickname });
+  socket.emit('joinRoom', { roomId, nickname, gameType });
 });
 
-// esci dalla stanza (solo lato client)
+// esci dalla stanza
 leaveBtn.addEventListener('click', () => {
   mySymbol = null;
   currentTurn = 'X';
@@ -102,10 +132,11 @@ leaveBtn.addEventListener('click', () => {
   statusEl.textContent = '';
   playersListEl.textContent = '';
   roomInfoEl.textContent = '';
+  gameInfoEl.textContent = '';
   symbolEl.textContent = '';
   turnEl.textContent = '';
 
-  renderBoard(Array(9).fill(null));
+  renderBoard(null);
 });
 
 // errori dal server
@@ -116,25 +147,35 @@ socket.on('errorMessage', (msg) => {
 // inizializzazione dopo join
 socket.on('init', (data) => {
   currentRoomId = data.roomId;
+  currentGameType = data.gameType;
   mySymbol = data.symbol;
   currentTurn = data.currentTurn;
-  gameOver = data.gameOver;
+  gameOver = !!data.gameOver;
 
   loginDiv.classList.add('hidden');
   gameDiv.classList.remove('hidden');
 
-  renderBoard(data.board);
+  roomInfoEl.textContent = 'Stanza: ' + currentRoomId;
+  updateGameLayout(currentGameType);
   renderPlayers(data.players);
 
-  roomInfoEl.textContent = 'Stanza: ' + currentRoomId;
-
-  if (!mySymbol) {
-    symbolEl.textContent = 'Sei spettatore (X e O già occupati)';
-  } else {
-    symbolEl.textContent = 'Tu sei: ' + mySymbol;
+  if (currentGameType === 'tris') {
+    renderBoard(data.board);
+    symbolEl.textContent = mySymbol
+      ? 'Tu sei: ' + mySymbol
+      : 'Sei spettatore (X e O occupati)';
+    turnEl.textContent = 'Turno di: ' + currentTurn;
+    statusEl.textContent = '';
+  } else if (currentGameType === 'morra') {
+    renderBoard(null);
+    symbolEl.textContent = 'Gioca cliccando una mossa qui sotto.';
+    turnEl.textContent = '';
+    if (data.morra && data.morra.lastResult) {
+      statusEl.textContent = data.morra.lastResult.text;
+    } else {
+      statusEl.textContent = 'In attesa delle scelte...';
+    }
   }
-  turnEl.textContent = 'Turno di: ' + currentTurn;
-  statusEl.textContent = '';
 });
 
 // aggiornamento lista giocatori
@@ -144,22 +185,37 @@ socket.on('playersUpdate', (data) => {
 
 // stato partita
 socket.on('gameState', (data) => {
-  currentTurn = data.currentTurn;
-  gameOver = data.gameOver;
+  currentGameType = data.gameType;
 
-  // se c'è vincitore, passiamo il simbolo per highlight
-  const winnerSymbol = data.winner === 'X' || data.winner === 'O' ? data.winner : null;
-  renderBoard(data.board, winnerSymbol);
+  updateGameLayout(currentGameType);
 
-  turnEl.textContent = 'Turno di: ' + currentTurn;
+  if (currentGameType === 'tris') {
+    currentTurn = data.currentTurn;
+    gameOver = !!data.gameOver;
 
-  if (data.winner === 'X' || data.winner === 'O') {
-    statusEl.textContent = 'Ha vinto: ' + data.winner;
-  } else if (data.winner === 'draw') {
-    statusEl.textContent = 'Pareggio!';
-    boardEl.classList.add('board-draw');
-  } else {
-    statusEl.textContent = '';
+    const winnerSymbol =
+      data.winner === 'X' || data.winner === 'O' ? data.winner : null;
+    renderBoard(data.board, winnerSymbol);
+
+    turnEl.textContent = 'Turno di: ' + currentTurn;
+
+    if (data.winner === 'X' || data.winner === 'O') {
+      statusEl.textContent = 'Ha vinto: ' + data.winner;
+    } else if (data.winner === 'draw') {
+      statusEl.textContent = 'Pareggio!';
+      boardEl.classList.add('board-draw');
+    } else {
+      statusEl.textContent = '';
+    }
+  } else if (currentGameType === 'morra') {
+    gameOver = false;
+    renderBoard(null);
+
+    if (data.morra && data.morra.lastResult) {
+      statusEl.textContent = data.morra.lastResult.text;
+    } else {
+      statusEl.textContent = 'In attesa delle scelte...';
+    }
   }
 
   if (data.players) {
@@ -167,13 +223,23 @@ socket.on('gameState', (data) => {
   }
 });
 
-// click celle
+// click celle (tris)
 cells.forEach(cell => {
   cell.addEventListener('click', () => {
+    if (currentGameType !== 'tris') return;
     const index = parseInt(cell.getAttribute('data-index'), 10);
     if (gameOver) return;
     if (!mySymbol) return; // spettatore
     socket.emit('makeMove', index);
+  });
+});
+
+// bottoni morra
+morraButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (currentGameType !== 'morra') return;
+    const choice = btn.getAttribute('data-choice');
+    socket.emit('morraChoice', choice);
   });
 });
 

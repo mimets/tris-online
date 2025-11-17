@@ -33,7 +33,7 @@ body {
     0 20px 40px rgba(15, 23, 42, 0.9),
     0 0 0 1px rgba(148, 163, 184, 0.12);
   padding: 20px 18px 18px;
-  max-width: 500px;
+  max-width: 520px;
   width: 100%;
   margin: 12px;
 }
@@ -105,12 +105,17 @@ h1 span {
   gap: 4px;
 }
 
+.login-field:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
 .login-field label {
   font-size: 11px;
   color: var(--text-soft);
 }
 
-input[type="text"] {
+input[type="text"],
+select {
   background: rgba(15, 23, 42, 0.9);
   border-radius: 10px;
   border: 1px solid rgba(148, 163, 184, 0.6);
@@ -125,16 +130,33 @@ input[type="text"]::placeholder {
   color: rgba(148, 163, 184, 0.7);
 }
 
-input[type="text"]:focus {
+input[type="text"]:focus,
+select:focus {
   border-color: var(--accent-strong);
   box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
   background: rgba(15, 23, 42, 1);
   transform: translateY(-1px);
 }
 
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--accent-strong) 50%),
+    linear-gradient(135deg, var(--accent-strong) 50%, transparent 50%);
+  background-position:
+    calc(100% - 15px) calc(50% + 1px),
+    calc(100% - 10px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* BUTTONS */
+
 .primary-btn,
 .secondary-btn,
-.ghost-btn {
+.ghost-btn,
+.morra-btn {
   border: none;
   border-radius: 999px;
   padding: 8px 16px;
@@ -205,9 +227,9 @@ input[type="text"]:focus {
 
 .top-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
   margin-bottom: 8px;
 }
 
@@ -218,6 +240,10 @@ input[type="text"]:focus {
   border: 1px solid rgba(148, 163, 184, 0.5);
   font-size: 11px;
   color: var(--accent-strong);
+}
+
+.game-chip {
+  color: var(--text-soft);
 }
 
 #info {
@@ -245,7 +271,12 @@ input[type="text"]:focus {
   color: var(--text-soft);
 }
 
-/* BOARD */
+/* BOARD TRIS */
+
+#trisWrapper {
+  display: flex;
+  justify-content: center;
+}
 
 #board {
   margin: 10px auto 8px;
@@ -318,6 +349,39 @@ input[type="text"]:focus {
   50% { transform: translateX(4px); }
   75% { transform: translateX(-2px); }
   100% { transform: translateX(0); }
+}
+
+/* MORRA */
+
+#morraWrapper {
+  margin: 10px 0 6px;
+  text-align: center;
+}
+
+.morra-buttons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.morra-btn {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  color: var(--text-main);
+  padding-inline: 12px;
+}
+
+.morra-btn:hover {
+  border-color: var(--accent-strong);
+  filter: brightness(1.05);
+}
+
+.morra-info {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-soft);
 }
 
 /* BOTTOM BAR */
