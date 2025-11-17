@@ -3,27 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <title>Tris Online - Stanze</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app-container">
-    <h1>Tris <span>Online</span></h1>
-    <p class="subtitle">Crea una stanza, condividi il codice e gioca contro chi vuoi.</p>
+    <header class="app-header">
+      <div>
+        <h1>Tris <span>Online</span></h1>
+        <p class="subtitle">Crea una stanza, invita gli amici e gioca ovunque.</p>
+      </div>
+      <div class="badge">Multiplayer</div>
+    </header>
 
-    <div id="login">
-      <div id="login-top">
-        <input id="roomIdInput" type="text" placeholder="Codice stanza (es. abc123)">
+    <section id="login">
+      <h2 class="section-title">Entra in una stanza</h2>
+      <div class="login-grid">
+        <div class="login-field">
+          <label for="roomIdInput">Codice stanza</label>
+          <input id="roomIdInput" type="text" maxlength="12" placeholder="Es. abc123">
+        </div>
+        <div class="login-field">
+          <label for="nicknameInput">Nickname</label>
+          <input id="nicknameInput" type="text" maxlength="14" placeholder="Es. feder">
+        </div>
       </div>
-      <div id="login-bottom">
-        <input id="nicknameInput" class="input-small" type="text" placeholder="Nickname">
-        <button id="joinBtn">Entra / Crea stanza</button>
-      </div>
+      <button id="joinBtn" class="primary-btn">Entra / Crea stanza</button>
       <p id="loginError" class="error"></p>
-    </div>
+      <p class="hint">Suggerimento: usa lo stesso codice stanza su telefono e PC per giocare insieme.</p>
+    </section>
 
-    <div id="game" class="hidden">
+    <section id="game" class="hidden">
+      <div class="top-bar">
+        <div class="room-chip" id="roomInfo"></div>
+        <button id="leaveBtn" class="ghost-btn">Esci</button>
+      </div>
+
       <div id="info">
-        <p id="roomInfo"></p>
         <p id="symbol" class="info-label"></p>
         <p id="turn" class="info-label"></p>
         <p id="status"></p>
@@ -43,8 +59,10 @@
         <div class="cell" data-index="8"></div>
       </div>
 
-      <button id="reset">Nuova partita</button>
-    </div>
+      <div class="bottom-bar">
+        <button id="reset" class="secondary-btn">Nuova partita</button>
+      </div>
+    </section>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

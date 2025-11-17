@@ -16,6 +16,7 @@ const statusEl = document.getElementById('status');
 const resetBtn = document.getElementById('reset');
 const playersListEl = document.getElementById('playersList');
 const roomInfoEl = document.getElementById('roomInfo');
+const leaveBtn = document.getElementById('leaveBtn');
 
 let mySymbol = null;
 let currentTurn = 'X';
@@ -60,7 +61,29 @@ joinBtn.addEventListener('click', () => {
   socket.emit('joinRoom', { roomId, nickname });
 });
 
-// messaggi di errore dal server
+// esci dalla stanza (lato client basta ricaricare l'interfaccia)
+leaveBtn.addEventListener('click', () => {
+  // reset stato locale
+  mySymbol = null;
+  currentTurn = 'X';
+  gameOver = false;
+  currentRoomId = null;
+
+  // torna a schermata login
+  gameDiv.classList.add('hidden');
+  loginDiv.classList.remove('hidden');
+
+  // pulisci UI
+  statusEl.textContent = '';
+  playersListEl.textContent = '';
+  roomInfoEl.textContent = '';
+  symbolEl.textContent = '';
+  turnEl.textContent = '';
+
+  renderBoard(Array(9).fill(null));
+});
+
+// errori dal server
 socket.on('errorMessage', (msg) => {
   loginError.textContent = msg;
 });
@@ -94,7 +117,7 @@ socket.on('playersUpdate', (data) => {
   renderPlayers(data.players);
 });
 
-// stato partita aggiornato
+// stato partita
 socket.on('gameState', (data) => {
   renderBoard(data.board);
   currentTurn = data.currentTurn;
@@ -115,7 +138,7 @@ socket.on('gameState', (data) => {
   }
 });
 
-// click sulle celle
+// click celle
 cells.forEach(cell => {
   cell.addEventListener('click', () => {
     const index = parseInt(cell.getAttribute('data-index'), 10);
@@ -125,7 +148,7 @@ cells.forEach(cell => {
   });
 });
 
-// bottone reset
+// reset partita
 resetBtn.addEventListener('click', () => {
   socket.emit('reset');
 });
