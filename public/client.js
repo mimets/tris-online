@@ -1,113 +1,53 @@
-const socket = io();
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Tris Online - Stanze</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <h1>Tris <span>Online</span></h1>
+    <p class="subtitle">Crea una stanza, condividi il codice e gioca contro chi vuoi.</p>
 
-const loginDiv = document.getElementById('login');
-const roomIdInput = document.getElementById('roomIdInput');
-const nicknameInput = document.getElementById('nicknameInput');
-const joinBtn = document.getElementById('joinBtn');
-const loginError = document.getElementById('loginError');
+    <div id="login">
+      <div id="login-top">
+        <input id="roomIdInput" type="text" placeholder="Codice stanza (es. abc123)">
+      </div>
+      <div id="login-bottom">
+        <input id="nicknameInput" class="input-small" type="text" placeholder="Nickname">
+        <button id="joinBtn">Entra / Crea stanza</button>
+      </div>
+      <p id="loginError" class="error"></p>
+    </div>
 
-const gameDiv = document.getElementById('game');
-const cells = document.querySelectorAll('.cell');
-const symbolEl = document.getElementById('symbol');
-const turnEl = document.getElementById('turn');
-const statusEl = document.getElementById('status');
-const resetBtn = document.getElementById('reset');
-const playersListEl = document.getElementById('playersList');
-const roomInfoEl = document.getElementById('roomInfo');
+    <div id="game" class="hidden">
+      <div id="info">
+        <p id="roomInfo"></p>
+        <p id="symbol" class="info-label"></p>
+        <p id="turn" class="info-label"></p>
+        <p id="status"></p>
+      </div>
 
-let mySymbol = null;
-let currentTurn = 'X';
-let gameOver = false;
-let currentRoomId = null;
+      <div id="playersList"></div>
 
-function renderBoard(board) {
-  board.forEach((value, index) => {
-    cells[index].textContent = value || '';
-  });
-}
+      <div id="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+      </div>
 
-function renderPlayers(players) {
-  const list = Object.values(players)
-    .map(p => {
-      const sym = p.symbol ? `(${p.symbol})` : '(spettatore)';
-      return `${p.nickname} ${sym}`;
-    });
-  playersListEl.textContent = 'Giocatori in stanza: ' + list.join(' | ');
-}
+      <button id="reset">Nuova partita</button>
+    </div>
+  </div>
 
-joinBtn.addEventListener('click', () => {
-  const roomId = roomIdInput.value.trim();
-  const nickname = nicknameInput.value.trim();
-
-  if (!roomId) {
-    loginError.textContent = 'Inserisci un codice stanza.';
-    return;
-  }
-
-  loginError.textContent = '';
-  socket.emit('joinRoom', { roomId, nickname });
-});
-
-socket.on('errorMessage', (msg) => {
-  loginError.textContent = msg;
-});
-
-socket.on('init', (data) => {
-  currentRoomId = data.roomId;
-  mySymbol = data.symbol;
-  currentTurn = data.currentTurn;
-  gameOver = data.gameOver;
-
-  loginDiv.classList.add('hidden');
-  gameDiv.classList.remove('hidden');
-
-  renderBoard(data.board);
-  renderPlayers(data.players);
-
-  roomInfoEl.textContent = 'Stanza: ' + currentRoomId;
-
-  if (!mySymbol) {
-    symbolEl.textContent = 'Sei spettatore (X e O già occupati)';
-  } else {
-    symbolEl.textContent = 'Tu sei: ' + mySymbol;
-  }
-  turnEl.textContent = 'Turno di: ' + currentTurn;
-  statusEl.textContent = '';
-});
-
-socket.on('playersUpdate', (data) => {
-  renderPlayers(data.players);
-});
-
-socket.on('gameState', (data) => {
-  renderBoard(data.board);
-  currentTurn = data.currentTurn;
-  gameOver = data.gameOver;
-
-  turnEl.textContent = 'Turno di: ' + currentTurn;
-
-  if (data.winner === 'X' || data.winner === 'O') {
-    statusEl.textContent = 'Ha vinto: ' + data.winner;
-  } else if (data.winner === 'draw') {
-    statusEl.textContent = 'Pareggio!';
-  } else {
-    statusEl.textContent = '';
-  }
-
-  if (data.players) {
-    renderPlayers(data.players);
-  }
-});
-
-cells.forEach(cell => {
-  cell.addEventListener('click', () => {
-    const index = parseInt(cell.getAttribute('data-index'), 10);
-    if (gameOver) return;
-    if (!mySymbol) return; // spettatore
-    socket.emit('makeMove', index);
-  });
-});
-
-resetBtn.addEventListener('click', () => {
-  socket.emit('reset');
-});
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
