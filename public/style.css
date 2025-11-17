@@ -9,6 +9,29 @@ h1 {
   margin-top: 20px;
 }
 
+.hidden {
+  display: none;
+}
+
+#error, .error {
+  color: #ff5555;
+}
+
+#login {
+  margin-top: 20px;
+}
+
+#login input {
+  padding: 6px 8px;
+  margin: 4px;
+}
+
+#joinBtn {
+  padding: 6px 12px;
+  margin: 4px;
+  cursor: pointer;
+}
+
 #board {
   margin: 20px auto;
   width: 300px;
@@ -40,4 +63,9 @@ h1 {
   padding: 8px 16px;
   font-size: 16px;
   cursor: pointer;
+}
+
+#playersList {
+  margin-top: 10px;
+  font-size: 14px;
 }

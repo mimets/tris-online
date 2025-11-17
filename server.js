@@ -4,20 +4,36 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: '*'
+  }
+});
 
 app.use(express.static('public'));
 
-let players = {};           // socket.id -> 'X' o 'O'
-let board = Array(9).fill(null); // 0..8
-let currentTurn = 'X';
-let gameOver = false;
+// rooms[roomId] = {
+//   board: Array(9),
+//   currentTurn: 'X' | 'O',
+//   gameOver: bool,
+//   players: { socketId: { symbol: 'X'|'O'|null, nickname: string } }
+// }
+const rooms = {};
+
+function createRoom(roomId) {
+  rooms[roomId] = {
+    board: Array(9).fill(null),
+    currentTurn: 'X',
+    gameOver: false,
+    players: {}
+  };
+}
 
 function checkWinner(b) {
   const lines = [
-    [0,1,2],[3,4,5],[6,7,8], // righe
-    [0,3,6],[1,4,7],[2,5,8], // colonne
-    [0,4,8],[2,4,6]          // diagonali
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
   ];
   for (const [a,b2,c] of lines) {
     if (b[a] && b[a] === b[b2] && b[a] === b[c]) {
@@ -28,87 +44,142 @@ function checkWinner(b) {
   return null;
 }
 
-function resetGame() {
-  board = Array(9).fill(null);
-  currentTurn = 'X';
-  gameOver = false;
-}
-
 io.on('connection', (socket) => {
-  console.log('Nuovo giocatore', socket.id);
+  console.log('Nuovo socket:', socket.id);
 
-  // Assegna X o O
-  const existingSymbols = Object.values(players);
-  let symbol = 'X';
-  if (existingSymbols.includes('X') && !existingSymbols.includes('O')) {
-    symbol = 'O';
-  } else if (existingSymbols.includes('X') && existingSymbols.includes('O')) {
-    symbol = null; // spettatore
-  }
-  players[socket.id] = symbol;
+  // info per questo socket
+  socket.data.roomId = null;
 
-  socket.emit('init', { 
-    symbol,
-    board,
-    currentTurn,
-    gameOver
+  // join room con nickname
+  socket.on('joinRoom', ({ roomId, nickname }) => {
+    roomId = (roomId || '').trim();
+    nickname = (nickname || '').trim() || 'Anonimo';
+
+    if (!roomId) {
+      socket.emit('errorMessage', 'Devi inserire un codice stanza.');
+      return;
+    }
+
+    if (!rooms[roomId]) {
+      createRoom(roomId);
+    }
+
+    const room = rooms[roomId];
+
+    // calcola simbolo: X se non c'è, O se c'è solo X, null se già X e O
+    const symbolsInUse = Object.values(room.players)
+      .map(p => p.symbol)
+      .filter(Boolean);
+
+    let symbol = 'X';
+    if (symbolsInUse.includes('X') && !symbolsInUse.includes('O')) {
+      symbol = 'O';
+    } else if (symbolsInUse.includes('X') && symbolsInUse.includes('O')) {
+      symbol = null; // spettatore
+    }
+
+    room.players[socket.id] = { symbol, nickname };
+    socket.data.roomId = roomId;
+    socket.join(roomId);
+
+    console.log(`Socket ${socket.id} è entrato in room ${roomId} con simbolo`, symbol);
+
+    // manda stato iniziale solo a questo socket
+    socket.emit('init', {
+      roomId,
+      symbol,
+      board: room.board,
+      currentTurn: room.currentTurn,
+      gameOver: room.gameOver,
+      players: room.players
+    });
+
+    // aggiorna anche gli altri nella stanza
+    io.to(roomId).emit('playersUpdate', {
+      players: room.players
+    });
   });
 
   socket.on('makeMove', (index) => {
-    if (gameOver) return;
-    const symbol = players[socket.id];
-    if (!symbol) return;             // spettatore
-    if (symbol !== currentTurn) return;
-    if (board[index] !== null) return;
+    const roomId = socket.data.roomId;
+    if (!roomId || !rooms[roomId]) return;
 
-    board[index] = symbol;
+    const room = rooms[roomId];
+    if (room.gameOver) return;
 
-    const winner = checkWinner(board);
+    const player = room.players[socket.id];
+    if (!player || !player.symbol) return; // spettatore
+
+    const symbol = player.symbol;
+    if (symbol !== room.currentTurn) return;
+
+    if (room.board[index] !== null) return;
+
+    room.board[index] = symbol;
+
+    const winner = checkWinner(room.board);
     if (winner) {
-      gameOver = true;
-      io.emit('gameState', {
-        board,
-        currentTurn,
-        gameOver,
-        winner
+      room.gameOver = true;
+      io.to(roomId).emit('gameState', {
+        board: room.board,
+        currentTurn: room.currentTurn,
+        gameOver: room.gameOver,
+        winner,
+        players: room.players
       });
     } else {
-      currentTurn = currentTurn === 'X' ? 'O' : 'X';
-      io.emit('gameState', {
-        board,
-        currentTurn,
-        gameOver,
-        winner: null
+      room.currentTurn = room.currentTurn === 'X' ? 'O' : 'X';
+      io.to(roomId).emit('gameState', {
+        board: room.board,
+        currentTurn: room.currentTurn,
+        gameOver: room.gameOver,
+        winner: null,
+        players: room.players
       });
     }
   });
 
   socket.on('reset', () => {
-    if (!players[socket.id]) return;
-    resetGame();
-    io.emit('gameState', {
-      board,
-      currentTurn,
-      gameOver,
-      winner: null
+    const roomId = socket.data.roomId;
+    if (!roomId || !rooms[roomId]) return;
+
+    const room = rooms[roomId];
+    room.board = Array(9).fill(null);
+    room.currentTurn = 'X';
+    room.gameOver = false;
+
+    io.to(roomId).emit('gameState', {
+      board: room.board,
+      currentTurn: room.currentTurn,
+      gameOver: room.gameOver,
+      winner: null,
+      players: room.players
     });
   });
 
   socket.on('disconnect', () => {
-    console.log('Giocatore disconnesso', socket.id);
-    delete players[socket.id];
-    // opzionale: reset gara quando qualcuno esce
-    resetGame();
-    io.emit('gameState', {
-      board,
-      currentTurn,
-      gameOver,
-      winner: null
-    });
+    const roomId = socket.data.roomId;
+    if (!roomId || !rooms[roomId]) return;
+
+    const room = rooms[roomId];
+    delete room.players[socket.id];
+
+    // se stanza vuota, la eliminiamo
+    if (Object.keys(room.players).length === 0) {
+      delete rooms[roomId];
+      console.log('Room eliminata:', roomId);
+    } else {
+      // aggiorna lista giocatori agli altri
+      io.to(roomId).emit('playersUpdate', {
+        players: room.players
+      });
+    }
+
+    console.log('Socket disconnesso:', socket.id);
   });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log('Server avviato su http://localhost:' + PORT);
+  console.log('Server avviato su porta ' + PORT);
 });
